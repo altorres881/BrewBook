@@ -1,72 +1,48 @@
+// Load .env and prompt for any missing secrets
 require('dotenv').config();
-const fs      = require('fs');
-const { Client } = require('ssh2');
+const express = require('express');
 const prompt  = require('prompt-sync')({ sigint: true });
 const { Pool } = require('pg');
-const express  = require('express');
 
-// if you didn’t set SSH_PASSWORD in .env, ask for it now:
-const sshPassword = process.env.SSH_PASSWORD
-  || prompt.hide('SSH password: ');
+const DB_HOST     = process.env.DB_HOST     || 'ada.mines.edu';
+const DB_PORT     = parseInt(process.env.DB_PORT, 10) || 5432;
+const DB_USER     = process.env.DB_USER     || prompt('DB user: ');
+const DB_PASSWORD = process.env.DB_PASSWORD || prompt.hide('DB password: ');
+const DB_NAME     = process.env.DB_NAME     || 'csci403';
 
-const sshConfig = {
-  host:       process.env.SSH_HOST,
-  port:       parseInt(process.env.SSH_PORT, 10) || 22,
-  username:   process.env.SSH_USER,
-  privateKey: process.env.SSH_KEY_PATH
-                 ? fs.readFileSync(process.env.SSH_KEY_PATH)
-                 : undefined,
-  password:   sshPassword
-};
-
-const dbConfig = {
-  host:     '127.0.0.1',  // we’ll forward to localhost
-  port:     parseInt(process.env.DB_PORT, 10) || 5432,
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-};
-
-const sshClient = new Client();
-
-sshClient.on('ready', () => {
-  console.log('  SSH connection ready, setting up tunnel...');
-  // forward local 5432 --> remote DB_HOST:DB_PORT
-  sshClient.forwardOut(
-    '127.0.0.1', 0,
-    process.env.DB_HOST, dbConfig.port,
-    (err, stream) => {
-      if (err) {
-        console.error('Tunnel error:', err);
-        process.exit(1);
-      }
-      console.log('  Tunnel established');
-
-      // attach the forwarded stream to pg
-      const pool = new Pool({
-        ...dbConfig,
-        stream
-      });
-
-      const app = express();
-      app.use(express.json());
-
-      app.get('/', async (_req, res) => {
-        res.send("omw to da liqo sto")
-      });
-
-      // …add your other CRUD routes here…
-
-      const port = parseInt(process.env.APP_PORT, 10) || 4000;
-      app.listen(port, () => {
-        console.log(`🍺 API up on http://localhost:${port}`);
-      });
-    }
-  );
+// Set up the Postgres pool
+const pool = new Pool({
+  host:     DB_HOST,
+  port:     DB_PORT,
+  user:     DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
 });
 
-sshClient.on('error', err => {
-  console.error('SSH connection error:', err);
+const app = express();
+app.use(express.json());
+
+// root page
+app.get('/', (_req, res) => {
+  res.send('omw to da liqo sto');
 });
 
-sshClient.connect(sshConfig);
+// 4) Your real data route
+app.get('/airports', async (_req, res) => {
+  console.log('  GET /airports');
+  try {
+    // If your table lives in another schema, you can do:
+    // const { rows } = await pool.query('SELECT * FROM your_schema.airports;');
+    const { rows } = await pool.query('SELECT * FROM airports;');
+    res.json(rows);
+  } catch (err) {
+    console.error('DB error:', err);
+    res.status(500).send('DB query failed');
+  }
+});
+
+// 5) Start listening
+const APP_PORT = parseInt(process.env.APP_PORT, 10) || 4000;
+app.listen(APP_PORT, () => {
+  console.log(` Server listening on http://localhost:${APP_PORT}`);
+});
