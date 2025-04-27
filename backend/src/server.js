@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const prompt  = require('prompt-sync')({ sigint: true });
 const { Pool } = require('pg');
+const path = require('path');
 
 const DB_HOST     = process.env.DB_HOST     || 'ada.mines.edu';
 const DB_PORT     = parseInt(process.env.DB_PORT, 10) || 5432;
@@ -17,28 +18,61 @@ const pool = new Pool({
   user:     DB_USER,
   password: DB_PASSWORD,
   database: DB_NAME,
+
+  //Sets the search_path to our group (then looks at public if specificed table isnt found)
+  options: '-c search_path=group35,public'
 });
 
 const app = express();
-app.use(express.json());
+
+const cors = require('cors');
+app.use(cors({ origin: 'http://localhost:5173' }));
+
+// const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
+
+// app.use(express.static(FRONTEND_DIR));
 
 // root page
 app.get('/', (_req, res) => {
-  res.send('omw to da liqo sto');
-});
+    console.log('Backend Accessed');
+  });
+  
 
 // 4) Your real data route
-app.get('/airports', async (_req, res) => {
-  console.log('  GET /airports');
-  try {
-    // If your table lives in another schema, you can do:
-    // const { rows } = await pool.query('SELECT * FROM your_schema.airports;');
-    const { rows } = await pool.query('SELECT * FROM airports;');
-    res.json(rows);
-  } catch (err) {
-    console.error('DB error:', err);
-    res.status(500).send('DB query failed');
-  }
+app.get('/airports', async (req, res) => {
+    const limit  = parseInt(req.query.limit, 10)  || 50;
+    const offset = parseInt(req.query.offset, 10) || 0;
+  
+    try {
+      const { rows } = await pool.query(
+        `SELECT * 
+           FROM airports 
+          LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('DB error:', err);
+      res.status(500).send('DB query failed');
+    }
+  });
+
+app.get('/beer', async (req, res) =>{
+    const limit  = parseInt(req.query.limit, 10)  || 50;
+    const offset = parseInt(req.query.offset, 10) || 0;
+  
+    try {
+      const { rows } = await pool.query(
+        `SELECT * 
+           FROM beer_data 
+          LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('DB error:', err);
+      res.status(500).send('DB query failed');
+    }
 });
 
 // 5) Start listening
