@@ -38,24 +38,7 @@ app.get('/', (_req, res) => {
   });
   
 
-// 4) Your real data route
-app.get('/airports', async (req, res) => {
-    const limit  = parseInt(req.query.limit, 10)  || 50;
-    const offset = parseInt(req.query.offset, 10) || 0;
-  
-    try {
-      const { rows } = await pool.query(
-        `SELECT * 
-           FROM airports 
-          LIMIT $1 OFFSET $2`,
-        [limit, offset]
-      );
-      res.json(rows);
-    } catch (err) {
-      console.error('DB error:', err);
-      res.status(500).send('DB query failed');
-    }
-  });
+
 
 // backend/src/server.js
 app.get('/beer', async (req, res) => {
@@ -178,6 +161,24 @@ app.get('/beer', async (req, res) => {
     }
   });
   
+  
+  // 2) Serve your static “Home.html” at /
+const HOME_DIR = path.join(__dirname, '..', '..', 'frontend', 'home');
+app.use('/', express.static(HOME_DIR));
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(HOME_DIR, 'Home.html'));
+});
+
+// 3) Serve the React “filter” SPA under /filter
+const SPA_DIR = path.join(__dirname, '..', '..', 'frontend', 'dist');
+app.use('/filter', express.static(SPA_DIR));
+app.get('/filter/*', (_req, res) => {
+  res.sendFile(path.join(SPA_DIR, 'index.html'));
+});
+
+
+
+
 
 // 5) Start listening
 const APP_PORT = parseInt(process.env.APP_PORT, 10) || 4000;
