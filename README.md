@@ -11,14 +11,14 @@ To keep the database separate from the interactive webapp, the database is conne
 2. in /backend, typed npm init -y and it created package.json
 
 3. still in /backend, run:
-      npm install
-      npm start
-      (if that doesnt work, npm run build)?
+      - npm install
+      - npm start
+      - (if that doesnt work, npm run build)?
 
-      enter user and pass, and it should return a message saying its running on localhost:4000
-      KEEP THIS TERMINAL OPEN
+      - enter user and pass, and it should return a message saying its running on localhost:4000
+      - KEEP THIS TERMINAL OPEN
 4. Open a new terminal, cd into /frontend
-   npm run build
-   npm run dev
-   Ctrl+click on the link that is returned
+   - npm run build
+   - npm run dev
+   - Ctrl+click on the link that is returned
    
