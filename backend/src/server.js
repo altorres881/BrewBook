@@ -28,17 +28,14 @@ const app = express();
 const cors = require('cors');
 app.use(cors({ origin: 'http://localhost:5173' }));
 
-// const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
-
-// app.use(express.static(FRONTEND_DIR));
-
-// root page
+const HOME_DIR = path.join(__dirname, '..', '..', 'frontend');
+app.use(
+    '/',
+    express.static(HOME_DIR, { index: false })
+  );
 app.get('/', (_req, res) => {
-    console.log('Backend Accessed');
-  });
-  
-
-
+  res.sendFile(path.join(HOME_DIR, 'home.html'))
+});
 
 // backend/src/server.js
 app.get('/beer', async (req, res) => {
@@ -162,19 +159,20 @@ app.get('/beer', async (req, res) => {
   });
   
   
-  // 2) Serve your static “Home.html” at /
-const HOME_DIR = path.join(__dirname, '..', '..', 'frontend', 'home');
-app.use('/', express.static(HOME_DIR));
-app.get('/', (_req, res) => {
-  res.sendFile(path.join(HOME_DIR, 'Home.html'));
-});
+
 
 // 3) Serve the React “filter” SPA under /filter
 const SPA_DIR = path.join(__dirname, '..', '..', 'frontend', 'dist');
+
+app.use(
+    '/assets',
+    express.static(path.join(SPA_DIR, 'assets'))
+  );
+
 app.use('/filter', express.static(SPA_DIR));
-app.get('/filter/*', (_req, res) => {
-  res.sendFile(path.join(SPA_DIR, 'index.html'));
-});
+app.get(/^\/filter\/.*$/, (_req, res) => {
+    res.sendFile(path.join(SPA_DIR, 'index.html'));
+  });
 
 
 
